@@ -49,6 +49,7 @@ jobs:
         with:
           java-version: 17
           distribution: temurin
+          cache: "gradle"
 
       - name: Set Gradle Conf
         run: |
@@ -70,6 +71,15 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Get VersionCode
+        run: |
+          version_code=$(git rev-parse --short HEAD)
+          echo "version_code: $version_code"
+          echo "version_code=$version_code" >> $GITHUB_ENV
+          version_number=$(git rev-list --count HEAD)
+          echo "version_number: $version_number"
+          echo "version_number=$version_number" >> $GITHUB_ENV
+
       - name: Build with Gradle
         run: |
           ./gradlew :app:assembleRelease -x lint -x lintVitalRelease \
@@ -83,23 +93,56 @@ jobs:
 #          KEY_ALIAS: 123456
 #          KEY_PASSWORD: 123456
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@main
-        # don't upload the artifacts if it's a pull request
-#        if: ${{ !github.event.pull_request }}
-        with:
-          path: './app/build/outputs/**/*.apk'
-          name: build_output_${{ github.event.head_commit.id }}.zip
+#      - name: Upload Artifacts
+#        uses: actions/upload-artifact@main
+#        # don't upload the artifacts if it's a pull request
+##        if: ${{ !github.event.pull_request }}
+#        with:
+#          path: './app/build/outputs/**/*.apk'
+#          name: build_output_${{ github.event.head_commit.id }}.zip
 
       - name: 获取当前时间
         uses: srfrnk/current-time@master
         id: current-time
         with:
           format: YYYY/MM/DD
-      - name: 上传
-        uses: "marvinpinto/action-automatic-releases@latest"
+
+#      - name: 上传
+#        uses: "marvinpinto/action-automatic-releases@latest"
+#        with:
+#          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+#          automatic_release_tag: "build_android_${{steps.current-time.outputs.formattedTime}}-${{ env.version_code }}"
+#          prerelease: true
+#          files: ./app/build/outputs/**/*.apk
+
+      - name: Delete Pre-Release
+        run: |
+          if gh release view beta &>/dev/null; then
+            gh release delete beta -y
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create or update beta tag
+        uses: richardsimko/update-tag@v1
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "build_android_${{steps.current-time.outputs.formattedTime}}"
+          tag_name: beta
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Pre-Release
+        uses: ncipollo/release-action@v1
+        with:
+          name: "build_android_${{steps.current-time.outputs.formattedTime}}-${{ env.version_code }}-${{ env.version_number }}"
+          tag: "beta"
+          body: "beta ${{steps.current-time.outputs.formattedTime}}-${{ env.version_code }}-${{ env.version_number }}"
           prerelease: true
-          files: ./app/build/outputs/**/*.apk
+          artifacts: ./app/build/outputs/**/*.apk
+
+      - name: Delete Workflow Runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 3

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.appcompat.app.AppCompatDelegate
 import com.absinthe.libraries.utils.utils.Utility
+import com.example.c001apk.di.NetworkModule
 import com.example.c001apk.ui.others.BugHandlerActivity
 import com.example.c001apk.util.PrefManager
 import dagger.hilt.android.HiltAndroidApp
@@ -27,7 +28,7 @@ class MyApplication : Application() {
         AppCompatDelegate.setDefaultNightMode(PrefManager.darkTheme)
 
         Mojito.initialize(
-            GlideImageLoader.with(this),
+            GlideImageLoader.with(this, NetworkModule.provideOkHttpClient()),
             SketchImageLoadFactory()
         )
 

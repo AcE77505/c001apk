@@ -35,6 +35,7 @@ object AddCookiesInterceptor : Interceptor {
             addHeader("X-App-Mode", MODE)
             addHeader("X-App-Supported", PrefManager.VERSION_CODE)
             addHeader("Content-Type", "application/x-www-form-urlencoded")
+            addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
             if (PrefManager.isLogin)
                 addHeader(
                     "Cookie",
