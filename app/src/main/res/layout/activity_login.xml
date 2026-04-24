@@ -131,7 +131,7 @@
 
             <Button
                 android:id="@+id/login"
-                android:layout_width="wrap_content"
+                android:layout_width="@dimen/login_action_btn_width"
                 android:layout_height="wrap_content"
                 android:text="@string/login"
                 app:layout_constraintBottom_toBottomOf="@id/switchSmsLogin"
@@ -143,7 +143,7 @@
             <Button
                 android:id="@+id/getSMS"
                 style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
+                android:layout_width="@dimen/login_action_btn_width"
                 android:layout_height="wrap_content"
                 android:text="@string/get_sms_token"
                 android:visibility="gone"
@@ -154,7 +154,7 @@
             <Button
                 android:id="@+id/switchPasswordLogin"
                 style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
+                android:layout_width="@dimen/login_action_btn_width"
                 android:layout_height="wrap_content"
                 android:text="@string/loginPass"
                 android:visibility="gone"
@@ -164,7 +164,7 @@
             <Button
                 android:id="@+id/switchSmsLogin"
                 style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
+                android:layout_width="@dimen/login_action_btn_width"
                 android:layout_height="wrap_content"
                 android:text="@string/login_sms_mode"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -173,7 +173,7 @@
             <Button
                 android:id="@+id/webLogin"
                 style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
+                android:layout_width="@dimen/login_action_btn_width"
                 android:layout_height="wrap_content"
                 android:text="@string/web_login"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -182,7 +182,7 @@
             <Button
                 android:id="@+id/switchCookieLogin"
                 style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
+                android:layout_width="@dimen/login_action_btn_width"
                 android:layout_height="wrap_content"
                 android:text="@string/cookie_login"
                 app:layout_constraintEnd_toEndOf="parent"
