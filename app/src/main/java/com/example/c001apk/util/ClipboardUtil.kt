@@ -5,9 +5,9 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PersistableBundle
 
 object ClipboardUtil {
     fun copyText(context: Context, text: String, showToast: Boolean = true) {
@@ -28,7 +28,7 @@ object ClipboardUtil {
         val clipboardManager =
             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clipData = ClipData.newPlainText(label, text)
-        val extras = Bundle().apply {
+        val extras = PersistableBundle().apply {
             putBoolean("android.content.extra.IS_SENSITIVE", true)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
