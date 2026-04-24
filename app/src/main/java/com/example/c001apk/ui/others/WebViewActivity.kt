@@ -42,6 +42,8 @@ import kotlin.system.exitProcess
 class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
 
     private var link: String? = null
+    private var isLogin: Boolean = false
+    private var hasSyncedLoginCookie = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,6 +53,7 @@ class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         link = intent.getStringExtra("url")
+        isLogin = intent.getBooleanExtra("isLogin", false)
         link?.let {
             loadUrlInWebView(it.http2https)
         }
@@ -214,6 +217,13 @@ class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
                     }
                     return super.shouldOverrideUrlLoading(webView, request)
                 }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    if (isLogin && !hasSyncedLoginCookie && !url.isNullOrBlank()) {
+                        syncLoginStateIfNeeded(url)
+                    }
+                }
             }
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -232,6 +242,30 @@ class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
             }
             loadUrl(url, mutableMapOf("X-Requested-With" to "com.coolapk.market"))
         }
+    }
+
+    private fun syncLoginStateIfNeeded(url: String) {
+        val isHomePage = url.startsWith("https://m.coolapk.com")
+            && (url == "https://m.coolapk.com/" || !url.contains("/login"))
+        if (!isHomePage) return
+        val cookies = CookieManager.getInstance().getCookie(url).orEmpty()
+        val cookieMap = cookies.split(";")
+            .mapNotNull {
+                val item = it.trim()
+                val index = item.indexOf("=")
+                if (index <= 0) null else item.substring(0, index) to item.substring(index + 1)
+            }.toMap()
+        val uid = cookieMap["uid"].orEmpty()
+        val username = cookieMap["username"].orEmpty()
+        val token = cookieMap["token"].orEmpty()
+        if (uid.isBlank() || username.isBlank() || token.isBlank()) return
+        PrefManager.isLogin = true
+        PrefManager.uid = uid
+        PrefManager.username = username
+        PrefManager.token = token
+        hasSyncedLoginCookie = true
+        Toast.makeText(this, "登录成功", Toast.LENGTH_SHORT).show()
+        finish()
     }
 
 

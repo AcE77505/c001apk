@@ -13,4 +13,14 @@
         android:showAsAction="always"
         android:title="@string/loginPhone" />
 
+    <item
+        android:id="@+id/loginCookie"
+        android:showAsAction="never"
+        android:title="@string/loginCookie" />
+
+    <item
+        android:id="@+id/webLogin"
+        android:showAsAction="always"
+        android:title="@string/web_login" />
+
 </menu>

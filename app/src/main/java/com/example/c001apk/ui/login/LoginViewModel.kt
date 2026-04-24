@@ -156,6 +156,29 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    fun loginWithCookie(cookie: String) {
+        val cookieMap = cookie.split(";")
+            .mapNotNull {
+                val item = it.trim()
+                val index = item.indexOf("=")
+                if (index <= 0) null else item.substring(0, index) to item.substring(index + 1)
+            }
+            .toMap()
+        val uid = cookieMap["uid"].orEmpty()
+        val username = cookieMap["username"].orEmpty()
+        val token = cookieMap["token"].orEmpty()
+        if (uid.isBlank() || username.isBlank() || token.isBlank()) {
+            toastText.postValue(Event("Cookie缺少uid/username/token"))
+            return
+        }
+        PrefManager.isLogin = true
+        PrefManager.uid = uid
+        PrefManager.username = username
+        PrefManager.token = token
+        this.uid = uid
+        onGetProfile()
+    }
+
     private fun onGetProfile() {
         viewModelScope.launch(Dispatchers.IO) {
             networkRepo.getProfile(uid.toString())

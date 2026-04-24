@@ -9,16 +9,19 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import com.example.c001apk.R
 import com.example.c001apk.databinding.ActivityLoginBinding
 import com.example.c001apk.ui.base.BaseActivity
 import com.example.c001apk.ui.main.MainActivity
+import com.example.c001apk.ui.others.WebViewActivity
 import com.example.c001apk.util.ActivityCollector
 import com.example.c001apk.util.CookieUtil.isGetCaptcha
 import com.example.c001apk.util.CookieUtil.isGetSmsLoginParam
 import com.example.c001apk.util.CookieUtil.isPreGetLoginParam
 import com.example.c001apk.util.CookieUtil.isTryLogin
+import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.LoginUtils.createRandomNumber
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -27,6 +30,7 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
 
     private val viewModel by viewModels<LoginViewModel>()
     private var isLoginPass = true
+    private var isCookieMode = false
 
     private val filter =
         InputFilter { source: CharSequence, _: Int, _: Int, _: Spanned?, _: Int, _: Int ->
@@ -91,7 +95,12 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         }*/
 
         binding.login.setOnClickListener {
-            if (isLoginPass) {
+            if (isCookieMode) {
+                if (binding.cookie.text.toString().isBlank())
+                    Toast.makeText(this, "Cookie不能为空", Toast.LENGTH_SHORT).show()
+                else
+                    viewModel.loginWithCookie(binding.cookie.text.toString())
+            } else if (isLoginPass) {
                 if (binding.account.text.toString() == "" || binding.password.text.toString() == "")
                     Toast.makeText(this, "用户名或密码为空", Toast.LENGTH_SHORT).show()
                 else
@@ -107,6 +116,34 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
 
         binding.captchaImg.setOnClickListener {
             getCaptcha()
+        }
+
+        binding.switchSmsLogin.setOnClickListener {
+            switchToPhoneMode()
+        }
+
+        binding.switchPasswordLogin.setOnClickListener {
+            switchToPasswordMode()
+        }
+
+        binding.webLogin.setOnClickListener {
+            IntentUtil.startActivity<WebViewActivity>(this) {
+                putExtra("url", "https://m.coolapk.com/login?type=mobile")
+                putExtra("isLogin", true)
+            }
+        }
+
+        binding.switchCookieLogin.setOnClickListener {
+            switchToCookieMode()
+        }
+
+        binding.getSMS.setOnClickListener {
+            Toast.makeText(this, "暂未开放", Toast.LENGTH_SHORT).show()
+        }
+
+        when (intent.getStringExtra("loginMode")) {
+            "cookie" -> switchToCookieMode()
+            else -> switchToPasswordMode()
         }
 
     }
@@ -163,36 +200,54 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         viewModel.onTryLogin()
     }
 
-    /*override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.login_menu, menu)
-        return true
-    }*/
-
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             android.R.id.home -> finish()
-
-            R.id.loginPass -> {
-                isLoginPass = true
-                binding.account.inputType = InputType.TYPE_CLASS_TEXT
-                binding.account.filters = arrayOf(LengthFilter(99), filter)
-                binding.passLayout.isVisible = true
-                binding.smsLayout.isVisible = false
-                binding.getSMS.isVisible = false
-            }
-
-            R.id.loginPhone -> {
-                isLoginPass = false
-                binding.account.inputType = InputType.TYPE_CLASS_NUMBER
-                binding.account.filters = arrayOf(LengthFilter(11), filter)
-                binding.getSMS.isVisible = true
-                binding.smsLayout.isVisible = true
-                binding.passLayout.isVisible = false
-                isGetSmsLoginParam = true
-                //viewModel.getSmsLoginParam()
-            }
         }
         return true
+    }
+
+    private fun switchToPasswordMode() {
+        isCookieMode = false
+        isLoginPass = true
+        binding.account.inputType = InputType.TYPE_CLASS_TEXT
+        binding.account.filters = arrayOf(LengthFilter(99), filter)
+        binding.passLayout.isVisible = true
+        binding.smsLayout.isVisible = false
+        binding.cookieLayout.isVisible = false
+        binding.captcha.isVisible = false
+        binding.getSMS.isVisible = false
+        binding.switchSmsLogin.isVisible = true
+        binding.switchSmsLogin.isInvisible = false
+        binding.switchPasswordLogin.isVisible = false
+    }
+
+    private fun switchToPhoneMode() {
+        isCookieMode = false
+        isLoginPass = false
+        binding.account.inputType = InputType.TYPE_CLASS_NUMBER
+        binding.account.filters = arrayOf(LengthFilter(11), filter)
+        binding.smsLayout.isVisible = true
+        binding.cookieLayout.isVisible = false
+        binding.passLayout.isVisible = false
+        binding.captcha.isVisible = false
+        binding.getSMS.isVisible = true
+        binding.switchSmsLogin.isVisible = true
+        binding.switchSmsLogin.isInvisible = true
+        binding.switchPasswordLogin.isVisible = true
+        isGetSmsLoginParam = true
+    }
+
+    private fun switchToCookieMode() {
+        isCookieMode = true
+        binding.passLayout.isVisible = false
+        binding.smsLayout.isVisible = false
+        binding.captcha.isVisible = false
+        binding.getSMS.isVisible = false
+        binding.cookieLayout.isVisible = true
+        binding.switchSmsLogin.isVisible = true
+        binding.switchSmsLogin.isInvisible = false
+        binding.switchPasswordLogin.isVisible = false
     }
 
     /*private fun getSMS() {
