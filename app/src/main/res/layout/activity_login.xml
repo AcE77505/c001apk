@@ -126,10 +126,9 @@
         </LinearLayout>
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:gravity="center_vertical"
+            android:layout_gravity="center_horizontal"
             android:orientation="horizontal">
 
             <LinearLayout
@@ -152,29 +151,40 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
                 android:orientation="vertical">
 
                 <Button
-                    android:id="@+id/switchSmsLogin"
+                    android:id="@+id/switchPasswordLogin"
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/login_sms_mode" />
+                    android:text="@string/loginPass"
+                    android:visibility="gone" />
 
-                <Button
-                    android:id="@+id/webLogin"
-                    style="?attr/materialButtonOutlinedStyle"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/web_login" />
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/switchSmsLogin"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/login_sms_mode" />
+
+                    <Button
+                        android:id="@+id/webLogin"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="@string/web_login" />
+                </LinearLayout>
 
                 <Button
                     android:id="@+id/switchCookieLogin"

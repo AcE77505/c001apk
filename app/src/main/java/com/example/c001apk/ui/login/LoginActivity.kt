@@ -118,11 +118,11 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         }
 
         binding.switchSmsLogin.setOnClickListener {
-            if (isLoginPass && !isCookieMode) {
-                switchToPhoneMode()
-            } else {
-                switchToPasswordMode()
-            }
+            switchToPhoneMode()
+        }
+
+        binding.switchPasswordLogin.setOnClickListener {
+            switchToPasswordMode()
         }
 
         binding.webLogin.setOnClickListener {
@@ -216,7 +216,8 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.cookieLayout.isVisible = false
         binding.captcha.isVisible = false
         binding.getSMS.isVisible = false
-        binding.switchSmsLogin.text = getString(R.string.login_sms_mode)
+        binding.switchSmsLogin.isVisible = true
+        binding.switchPasswordLogin.isVisible = false
     }
 
     private fun switchToPhoneMode() {
@@ -229,7 +230,8 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.passLayout.isVisible = false
         binding.captcha.isVisible = false
         binding.getSMS.isVisible = true
-        binding.switchSmsLogin.text = getString(R.string.loginPass)
+        binding.switchSmsLogin.isVisible = false
+        binding.switchPasswordLogin.isVisible = true
         isGetSmsLoginParam = true
     }
 
@@ -240,7 +242,8 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.captcha.isVisible = false
         binding.getSMS.isVisible = false
         binding.cookieLayout.isVisible = true
-        binding.switchSmsLogin.text = getString(R.string.login_sms_mode)
+        binding.switchSmsLogin.isVisible = true
+        binding.switchPasswordLogin.isVisible = false
     }
 
     /*private fun getSMS() {
