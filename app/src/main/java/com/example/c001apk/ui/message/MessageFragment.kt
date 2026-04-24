@@ -77,7 +77,14 @@ class MessageFragment : BaseFragment<FragmentMessageBinding>() {
             initMenu()
         } else {
             binding.clickToLogin.setOnClickListener {
-                IntentUtil.startActivity<LoginActivity>(requireContext()) {}
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("选择登录方式")
+                    .setItems(arrayOf("账号密码登录", "Token登录（Cookie模式）")) { _, which ->
+                        IntentUtil.startActivity<LoginActivity>(requireContext()) {
+                            putExtra("loginMode", if (which == 0) "password" else "cookie")
+                        }
+                    }
+                    .show()
             }
         }
     }
