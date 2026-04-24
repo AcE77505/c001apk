@@ -5,7 +5,6 @@ import android.text.InputFilter
 import android.text.InputFilter.LengthFilter
 import android.text.InputType
 import android.text.Spanned
-import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
@@ -118,6 +117,21 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
             getCaptcha()
         }
 
+        binding.switchSmsLogin.setOnClickListener {
+            switchToPhoneMode()
+        }
+
+        binding.webLogin.setOnClickListener {
+            IntentUtil.startActivity<WebViewActivity>(this) {
+                putExtra("url", "https://m.coolapk.com/login?type=mobile")
+                putExtra("isLogin", true)
+            }
+        }
+
+        binding.switchCookieLogin.setOnClickListener {
+            switchToCookieMode()
+        }
+
         when (intent.getStringExtra("loginMode")) {
             "cookie" -> switchToCookieMode()
             else -> switchToPasswordMode()
@@ -177,33 +191,9 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         viewModel.onTryLogin()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.login_menu, menu)
-        return true
-    }
-
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             android.R.id.home -> finish()
-
-            R.id.loginPass -> {
-                switchToPasswordMode()
-            }
-
-            R.id.loginPhone -> {
-                switchToPhoneMode()
-            }
-
-            R.id.loginCookie -> {
-                switchToCookieMode()
-            }
-
-            R.id.webLogin -> {
-                IntentUtil.startActivity<WebViewActivity>(this) {
-                    putExtra("url", "https://m.coolapk.com/login?type=mobile")
-                    putExtra("isLogin", true)
-                }
-            }
         }
         return true
     }
@@ -217,7 +207,6 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.smsLayout.isVisible = false
         binding.cookieLayout.isVisible = false
         binding.captcha.isVisible = false
-        binding.getSMS.isVisible = false
         binding.login.text = getString(R.string.login)
     }
 
@@ -226,7 +215,6 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         isLoginPass = false
         binding.account.inputType = InputType.TYPE_CLASS_NUMBER
         binding.account.filters = arrayOf(LengthFilter(11), filter)
-        binding.getSMS.isVisible = true
         binding.smsLayout.isVisible = true
         binding.cookieLayout.isVisible = false
         binding.passLayout.isVisible = false
@@ -240,7 +228,6 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.passLayout.isVisible = false
         binding.smsLayout.isVisible = false
         binding.captcha.isVisible = false
-        binding.getSMS.isVisible = false
         binding.cookieLayout.isVisible = true
         binding.login.text = getString(R.string.cookie_login)
     }

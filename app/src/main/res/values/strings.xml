@@ -71,7 +71,8 @@
     <string name="cookie_login">Cookie登录</string>
     <string name="export_cookie">导出Cookie</string>
     <string name="export_cookie_summary_login_required">登录后可导出</string>
-    <string name="export_cookie_copied">Cookie已复制到剪贴板（60秒后自动清除）</string>
+    <string name="export_cookie_copied">Cookie已复制到剪贴板</string>
+    <string name="login_sms_mode">验证码登录</string>
     <string name="no_more">没有更多了</string>
     <string name="feedback">反馈</string>
     <string name="about">关于</string>

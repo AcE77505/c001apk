@@ -5,8 +5,6 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.os.PersistableBundle
 
 object ClipboardUtil {
@@ -22,8 +20,7 @@ object ClipboardUtil {
         context: Context,
         label: String,
         text: String,
-        toastText: String,
-        autoClearMs: Long = 60_000
+        toastText: String
     ) {
         val clipboardManager =
             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -37,13 +34,5 @@ object ClipboardUtil {
         clipData.description.extras = extras
         clipboardManager.setPrimaryClip(clipData)
         ToastUtil.toast(context, toastText)
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            val current = clipboardManager.primaryClip
-            val currentText = current?.getItemAt(0)?.coerceToText(context)?.toString()
-            if (currentText == text) {
-                clipboardManager.setPrimaryClip(ClipData.newPlainText(label, ""))
-            }
-        }, autoClearMs)
     }
 }
