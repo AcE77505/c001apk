@@ -118,7 +118,11 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         }
 
         binding.switchSmsLogin.setOnClickListener {
-            switchToPhoneMode()
+            if (isLoginPass && !isCookieMode) {
+                switchToPhoneMode()
+            } else {
+                switchToPasswordMode()
+            }
         }
 
         binding.webLogin.setOnClickListener {
@@ -130,6 +134,10 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
 
         binding.switchCookieLogin.setOnClickListener {
             switchToCookieMode()
+        }
+
+        binding.getSMS.setOnClickListener {
+            Toast.makeText(this, "暂未开放", Toast.LENGTH_SHORT).show()
         }
 
         when (intent.getStringExtra("loginMode")) {
@@ -207,7 +215,8 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.smsLayout.isVisible = false
         binding.cookieLayout.isVisible = false
         binding.captcha.isVisible = false
-        binding.login.text = getString(R.string.login)
+        binding.getSMS.isVisible = false
+        binding.switchSmsLogin.text = getString(R.string.login_sms_mode)
     }
 
     private fun switchToPhoneMode() {
@@ -219,7 +228,8 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.cookieLayout.isVisible = false
         binding.passLayout.isVisible = false
         binding.captcha.isVisible = false
-        binding.login.text = getString(R.string.login)
+        binding.getSMS.isVisible = true
+        binding.switchSmsLogin.text = getString(R.string.loginPass)
         isGetSmsLoginParam = true
     }
 
@@ -228,8 +238,9 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.passLayout.isVisible = false
         binding.smsLayout.isVisible = false
         binding.captcha.isVisible = false
+        binding.getSMS.isVisible = false
         binding.cookieLayout.isVisible = true
-        binding.login.text = getString(R.string.cookie_login)
+        binding.switchSmsLogin.text = getString(R.string.login_sms_mode)
     }
 
     /*private fun getSMS() {
