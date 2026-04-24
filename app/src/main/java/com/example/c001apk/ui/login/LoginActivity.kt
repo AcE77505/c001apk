@@ -9,6 +9,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import com.example.c001apk.R
 import com.example.c001apk.databinding.ActivityLoginBinding
@@ -217,6 +218,7 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.captcha.isVisible = false
         binding.getSMS.isVisible = false
         binding.switchSmsLogin.isVisible = true
+        binding.switchSmsLogin.isInvisible = false
         binding.switchPasswordLogin.isVisible = false
     }
 
@@ -230,7 +232,8 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.passLayout.isVisible = false
         binding.captcha.isVisible = false
         binding.getSMS.isVisible = true
-        binding.switchSmsLogin.isVisible = false
+        binding.switchSmsLogin.isVisible = true
+        binding.switchSmsLogin.isInvisible = true
         binding.switchPasswordLogin.isVisible = true
         isGetSmsLoginParam = true
     }
@@ -243,6 +246,7 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
         binding.getSMS.isVisible = false
         binding.cookieLayout.isVisible = true
         binding.switchSmsLogin.isVisible = true
+        binding.switchSmsLogin.isInvisible = false
         binding.switchPasswordLogin.isVisible = false
     }
 
