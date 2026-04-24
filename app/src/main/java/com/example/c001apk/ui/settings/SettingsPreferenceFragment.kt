@@ -24,10 +24,12 @@ import com.example.c001apk.ui.others.AboutActivity
 import com.example.c001apk.ui.settings.params.ParamsActivity
 import com.example.c001apk.util.ActivityCollector
 import com.example.c001apk.util.CacheDataManager
+import com.example.c001apk.util.ClipboardUtil
 import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.PrefManager
 import com.example.c001apk.util.TokenDeviceUtils.getDeviceCode
 import com.example.c001apk.util.TokenDeviceUtils.randHexString
+import com.example.c001apk.util.ToastUtil
 import com.example.c001apk.util.doOnMainThreadIdle
 import com.example.c001apk.util.setBottomPaddingSpace
 import com.google.android.material.color.MaterialColors
@@ -167,6 +169,26 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         findPreference<Preference>("params")?.setOnPreferenceClickListener {
             IntentUtil.startActivity<ParamsActivity>(requireContext()) {}
             true
+        }
+
+        findPreference<Preference>("exportCookie")?.apply {
+            isEnabled = PrefManager.isLogin
+            summary =
+                if (PrefManager.isLogin) null else getString(R.string.export_cookie_summary_login_required)
+            setOnPreferenceClickListener {
+                if (!PrefManager.isLogin) {
+                    ToastUtil.toast(requireContext(), getString(R.string.click_to_login))
+                    return@setOnPreferenceClickListener true
+                }
+                val cookie = "uid=${PrefManager.uid}; username=${PrefManager.username}; token=${PrefManager.token}"
+                ClipboardUtil.copySensitiveText(
+                    context = requireContext(),
+                    label = "c001apk cookie",
+                    text = cookie,
+                    toastText = getString(R.string.export_cookie_copied)
+                )
+                true
+            }
         }
 
         findPreference<Preference>("szlmId")?.setOnPreferenceClickListener {
