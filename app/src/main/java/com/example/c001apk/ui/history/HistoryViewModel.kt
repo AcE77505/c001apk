@@ -5,12 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.c001apk.logic.model.FeedEntity
 import com.example.c001apk.logic.repository.BlackListRepo
+import com.example.c001apk.logic.model.FeedContentResponse
 import com.example.c001apk.logic.repository.HistoryFavoriteRepo
+import com.example.c001apk.logic.repository.NetworkRepo
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @HiltViewModel(assistedFactory = HistoryViewModel.Factory::class)
@@ -18,6 +21,7 @@ class HistoryViewModel @AssistedInject constructor(
     @Assisted val type: String,
     private val blackListRepo: BlackListRepo,
     private val historyRepo: HistoryFavoriteRepo,
+    private val networkRepo: NetworkRepo,
 ) : ViewModel() {
 
     @AssistedFactory
@@ -32,6 +36,24 @@ class HistoryViewModel @AssistedInject constructor(
             historyRepo.loadAllFavoriteListLive()
         }
 
+
+
+    suspend fun hasBackup(fid: String): Boolean {
+        return historyRepo.checkFavorite(fid)
+    }
+
+    suspend fun replaceBackup(entity: FeedEntity) {
+        historyRepo.deleteFavorite(entity.fid)
+        historyRepo.insertFavorite(entity)
+    }
+
+    suspend fun addBackup(entity: FeedEntity) {
+        historyRepo.insertFavorite(entity)
+    }
+
+    suspend fun fetchFeedDetail(fid: String): FeedContentResponse? {
+        return networkRepo.getFeedContent(fid, null).first().getOrNull()
+    }
 
     fun saveUid(uid: String) {
         viewModelScope.launch(Dispatchers.IO) {

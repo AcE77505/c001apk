@@ -2,13 +2,16 @@ package com.example.c001apk.ui.feed
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.PopupMenu
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -41,6 +44,7 @@ import com.example.c001apk.ui.feed.reply.ReplyRefreshListener
 import com.example.c001apk.ui.others.CopyActivity
 import com.example.c001apk.ui.others.WebViewActivity
 import com.example.c001apk.util.ClipboardUtil
+import com.example.c001apk.util.FeedBackupUtil
 import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.PrefManager
 import com.example.c001apk.util.ToastUtil
@@ -422,11 +426,7 @@ class FeedFragment : BaseFragment<FragmentFeedBinding>(), IOnPublishClickListene
             menu.findItem(R.id.showQuestion).isVisible = viewModel.feedType == "answer"
 
             val favorite = menu.findItem(R.id.favorite)
-            lifecycleScope.launch(Dispatchers.Main) {
-                val isFavorite = viewModel.isFavorite(viewModel.id)
-                favorite.title = if (isFavorite) "取消收藏"
-                else "收藏"
-            }
+            favorite.title = "备份"
             setOnMenuItemClickListener {
                 when (it.itemId) {
                     R.id.showQuestion -> {
@@ -480,44 +480,106 @@ class FeedFragment : BaseFragment<FragmentFeedBinding>(), IOnPublishClickListene
 
 
                     R.id.favorite -> {
-                        lifecycleScope.launch(Dispatchers.Main) {
-                            val isFavorite = favorite.title == "取消收藏"
-                            if (isFavorite) {
-                                viewModel.delete(viewModel.id)
-                                favorite.title = "收藏"
-                                ToastUtil.toast(requireContext(), "已取消收藏")
-                            } else {
-                                try {
-                                    val fav = FeedEntity(
-                                        viewModel.id,
-                                        viewModel.uid.toString(),
-                                        viewModel.funame.toString(),
-                                        viewModel.avatar.toString(),
-                                        viewModel.device.toString(),
-                                        if (!viewModel.articleList.isNullOrEmpty())
-                                            viewModel.articleMsg.toString()
-                                        else {
-                                            with(viewModel.feedDataList?.getOrNull(0)?.message.toString()) {
-                                                if (this.length > 150) this.substring(0, 150)
-                                                else this
-                                            }
-                                        }, // 还未加载完会空指针
-                                        if (!viewModel.articleList.isNullOrEmpty()) viewModel.articleDateLine.toString()
-                                        else viewModel.feedDataList?.getOrNull(0)?.dateline.toString()
-                                    )
-                                    viewModel.insert(fav)
-                                    favorite.title = "取消收藏"
-                                    ToastUtil.toast(requireContext(), "已收藏")
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    ToastUtil.toast(requireContext(), "请稍后再试")
-                                }
-                            }
-                        }
+                        startBackupFromCurrentFeed()
                     }
 
                 }
                 return@setOnMenuItemClickListener true
+            }
+        }
+    }
+
+
+    private val backupPathLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            uri ?: return@registerForActivityResult
+            requireContext().contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+            PrefManager.backupTreeUri = uri.toString()
+            startBackupFromCurrentFeed()
+        }
+
+    private fun startBackupFromCurrentFeed() {
+        if (!FeedBackupUtil.hasBackupPath()) {
+            ToastUtil.toast(requireContext(), "请选择备份保存路径")
+            backupPathLauncher.launch(null)
+            return
+        }
+        lifecycleScope.launch {
+            val fav = buildCurrentBackupEntity() ?: run {
+                ToastUtil.toast(requireContext(), "请稍后再试")
+                return@launch
+            }
+            val exists = viewModel.isFavorite(viewModel.id)
+            if (exists) {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("动态已备份过，你想？")
+                    .setNegativeButton("取消", null)
+                    .setNeutralButton("均保留") { _, _ ->
+                        runBackup(fav, keepBoth = true, replace = false)
+                    }
+                    .setPositiveButton("替换") { _, _ ->
+                        runBackup(fav, keepBoth = false, replace = true)
+                    }
+                    .show()
+            } else {
+                runBackup(fav, keepBoth = false, replace = false)
+            }
+        }
+    }
+
+    private fun buildCurrentBackupEntity(): FeedEntity? {
+        return runCatching {
+            FeedEntity(
+                viewModel.id,
+                viewModel.uid.toString(),
+                viewModel.funame.toString(),
+                viewModel.avatar.toString(),
+                viewModel.device.toString(),
+                if (!viewModel.articleList.isNullOrEmpty()) {
+                    viewModel.articleMsg.toString()
+                } else {
+                    with(viewModel.feedDataList?.getOrNull(0)?.message.toString()) {
+                        if (this.length > 150) this.substring(0, 150) else this
+                    }
+                },
+                if (!viewModel.articleList.isNullOrEmpty()) viewModel.articleDateLine.toString()
+                else viewModel.feedDataList?.getOrNull(0)?.dateline.toString()
+            )
+        }.getOrNull()
+    }
+
+    private fun runBackup(fav: FeedEntity, keepBoth: Boolean, replace: Boolean) {
+        val loadingDialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(LayoutInflater.from(requireContext()).inflate(R.layout.dialog_refresh, null, false))
+            .setTitle("正在备份")
+            .setCancelable(false)
+            .create()
+        loadingDialog.show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            runCatching {
+                val detail = viewModel.fetchFeedDetail(fav.fid)
+                    ?: throw IllegalStateException("获取动态详情失败")
+                val data = detail.data ?: throw IllegalStateException("动态详情为空")
+                val treeUri = Uri.parse(PrefManager.backupTreeUri)
+                val imageUrls = FeedBackupUtil.collectImageUrls(data)
+                val baseName = FeedBackupUtil.buildBaseName(fav.fid, keepBoth)
+                FeedBackupUtil.backupToSaf(requireContext(), treeUri, baseName, detail, imageUrls, replace)
+                if (replace) viewModel.replaceBackup(fav)
+                else viewModel.insert(fav)
+            }.onSuccess {
+                launch(Dispatchers.Main) {
+                    loadingDialog.dismiss()
+                    ToastUtil.toast(requireContext(), "备份成功")
+                }
+            }.onFailure {
+                launch(Dispatchers.Main) {
+                    loadingDialog.dismiss()
+                    ToastUtil.toast(requireContext(), it.message ?: "备份失败")
+                }
             }
         }
     }

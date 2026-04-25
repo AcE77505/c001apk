@@ -24,6 +24,11 @@ class HistoryAdapter(
         RecyclerView.ViewHolder(binding.root) {
         var id: String = ""
         var uid: String = ""
+        private var username: String? = null
+        private var avatar: String? = null
+        private var device: String? = null
+        private var message: String? = null
+        private var pubDate: String? = null
 
         init {
             binding.expand.setOnClickListener {
@@ -33,16 +38,29 @@ class HistoryAdapter(
                         menu.findItem(R.id.show)?.isVisible = false
                         menu.findItem(R.id.report)?.isVisible = PrefManager.isLogin
                     }
-                    setOnMenuItemClickListener(
-                        PopClickListener(
-                            listener,
-                            it.context,
-                            "feed",
-                            id,
-                            uid,
-                            bindingAdapterPosition
-                        )
-                    )
+                    setOnMenuItemClickListener { item ->
+                        if (item.itemId == R.id.backup) {
+                            listener.onBackupClicked(
+                                id,
+                                uid,
+                                username,
+                                avatar,
+                                device,
+                                message,
+                                pubDate,
+                            )
+                            true
+                        } else {
+                            PopClickListener(
+                                listener,
+                                it.context,
+                                "feed",
+                                id,
+                                uid,
+                                bindingAdapterPosition
+                            ).onMenuItemClick(item)
+                        }
+                    }
                     show()
                 }
             }
@@ -51,6 +69,11 @@ class HistoryAdapter(
         fun bind(data: FeedEntity) {
             id = data.fid
             uid = data.uid
+            username = data.uname
+            avatar = data.avatar
+            device = data.device
+            message = data.message
+            pubDate = data.pubDate
 
             binding.setVariable(BR.id, id)
             binding.setVariable(BR.uid, uid)

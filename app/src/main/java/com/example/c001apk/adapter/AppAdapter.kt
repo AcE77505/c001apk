@@ -43,6 +43,11 @@ class AppAdapter(
         var entityType: String = ""
         var id: String = ""
         var uid: String = ""
+        var username: String? = null
+        var userAvatar: String? = null
+        var deviceTitle: String? = null
+        var message: String? = null
+        var dateline: String? = null
 
         init {
             binding.expand.setOnClickListener {
@@ -60,7 +65,12 @@ class AppAdapter(
                             entityType,
                             id,
                             uid,
-                            bindingAdapterPosition
+                            bindingAdapterPosition,
+                            username,
+                            userAvatar,
+                            deviceTitle,
+                            message,
+                            dateline
                         )
                     )
                     show()
@@ -72,6 +82,11 @@ class AppAdapter(
             entityType = data.entityType
             id = data.id ?: ""
             uid = data.uid ?: ""
+            username = data.username
+            userAvatar = data.userAvatar
+            deviceTitle = data.deviceTitle
+            message = data.message
+            dateline = data.dateline?.toString()
 
             binding.setVariable(BR.data, data)
             binding.setVariable(BR.listener, listener)
@@ -365,6 +380,11 @@ class AppAdapter(
         var entityType: String = ""
         var id: String = ""
         var uid: String = ""
+        var username: String? = null
+        var userAvatar: String? = null
+        var deviceTitle: String? = null
+        var message: String? = null
+        var dateline: String? = null
 
         init {
             binding.expand.setOnClickListener {
@@ -382,7 +402,12 @@ class AppAdapter(
                             entityType,
                             id,
                             uid,
-                            bindingAdapterPosition
+                            bindingAdapterPosition,
+                            username,
+                            userAvatar,
+                            deviceTitle,
+                            message,
+                            dateline
                         )
                     )
                     show()
@@ -394,6 +419,11 @@ class AppAdapter(
             entityType = data.entityType
             id = data.id ?: ""
             uid = data.uid ?: ""
+            username = data.username
+            userAvatar = data.userAvatar
+            deviceTitle = data.deviceTitle
+            message = data.message
+            dateline = data.dateline?.toString()
 
             binding.setVariable(BR.data, data)
             binding.setVariable(BR.listener, listener)
