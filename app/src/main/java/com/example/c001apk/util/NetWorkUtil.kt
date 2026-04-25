@@ -38,6 +38,14 @@ object NetWorkUtil {
         return false
     }
 
+
+    fun isNetworkAvailable(context: Context = com.example.c001apk.MyApplication.context): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = cm.activeNetwork ?: return false
+        val nc = cm.getNetworkCapabilities(network) ?: return false
+        return nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
     fun openLink(context: Context, url: String, title: String?) {
         val replace = url.replace("https://", "")
             .replace("http://", "")

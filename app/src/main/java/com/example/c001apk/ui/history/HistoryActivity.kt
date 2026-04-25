@@ -24,6 +24,9 @@ import com.example.c001apk.databinding.ActivityHistoryBinding
 import com.example.c001apk.logic.model.FeedContentResponse
 import com.example.c001apk.logic.model.FeedEntity
 import com.example.c001apk.ui.base.BaseActivity
+import com.example.c001apk.util.NetWorkUtil
+import com.example.c001apk.util.IntentUtil
+import com.example.c001apk.ui.feed.FeedActivity
 import com.example.c001apk.util.FeedBackupUtil
 import com.example.c001apk.util.PrefManager
 import com.example.c001apk.util.ToastUtil
@@ -276,6 +279,18 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
         }
     }
 
+
+    private fun findBackupJson(fid: String): String? {
+        val root = DocumentFile.fromTreeUri(this, Uri.parse(PrefManager.backupTreeUri)) ?: return null
+        return root.listFiles()
+            .filter { it.isFile && it.name?.endsWith(".json", ignoreCase = true) == true }
+            .filter { it.name?.contains("feed_${fid}") == true }
+            .maxByOrNull { it.lastModified() }
+            ?.let { file ->
+                contentResolver.openInputStream(file.uri)?.bufferedReader()?.use { it.readText() }
+            }
+    }
+
     inner class ItemClickListener : ItemListener {
         override fun onViewFeed(
             view: View,
@@ -289,6 +304,16 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
             rid: Any?,
             isViewReply: Any?
         ) {
+            if (viewModel.type == "favorite" && !NetWorkUtil.isNetworkAvailable(this@HistoryActivity)) {
+                val backupJson = id?.let { findBackupJson(it) }
+                if (!backupJson.isNullOrEmpty()) {
+                    IntentUtil.startActivity<FeedActivity>(this@HistoryActivity) {
+                        putExtra("id", id)
+                        putExtra("backupJson", backupJson)
+                    }
+                    return
+                }
+            }
             super.onViewFeed(
                 view,
                 id,

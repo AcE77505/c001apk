@@ -9,6 +9,7 @@ import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants.LOADING_END
 import com.example.c001apk.constant.Constants.LOADING_FAILED
 import com.example.c001apk.logic.model.FeedArticleContentBean
+import com.example.c001apk.logic.model.FeedContentResponse
 import com.example.c001apk.logic.model.FeedEntity
 import com.example.c001apk.logic.model.HomeFeedResponse
 import com.example.c001apk.logic.model.TotalReplyResponse
@@ -188,6 +189,24 @@ class FeedViewModel @AssistedInject constructor(
         }
     }
 
+
+    fun loadBackupData(json: String) {
+        runCatching {
+            Gson().fromJson(json, FeedContentResponse::class.java)
+        }.onSuccess { response ->
+            val data = response.data
+            if (data != null) {
+                applyFeedData(data)
+                activityState.postValue(LoadingState.LoadingDone)
+            } else {
+                activityState.postValue(LoadingState.LoadingFailed(LOADING_FAILED))
+            }
+        }.onFailure {
+            it.printStackTrace()
+            activityState.postValue(LoadingState.LoadingFailed(LOADING_FAILED))
+        }
+    }
+
     fun fetchFeedData() {
         viewModelScope.launch(Dispatchers.IO) {
             networkRepo.getFeedContent(id, frid)
@@ -198,66 +217,7 @@ class FeedViewModel @AssistedInject constructor(
                             activityState.postValue(LoadingState.LoadingError(feed.message))
                             return@collect
                         } else if (feed.data != null) {
-                            uid = feed.data.uid
-                            funame = feed.data.userInfo?.username
-                            avatar = feed.data.userAvatar
-                            device = feed.data.deviceTitle
-                            replyCount = feed.data.replynum
-                            dateLine = feed.data.dateline
-                            feedTypeName = feed.data.feedTypeName
-                            feedType = feed.data.feedType
-
-                            if (feedType in listOf("feedArticle", "trade")
-                                && feed.data.messageRawOutput != "null"
-                            ) {
-                                articleMsg =
-                                    if ((feed.data.message?.length ?: 0) > 150)
-                                        feed.data.message?.substring(0, 150)
-                                    else feed.data.message
-                                articleDateLine = feed.data.dateline
-                                articleList = ArrayList<FeedArticleContentBean.Data>().also {
-                                    if (feed.data.messageCover?.isNotEmpty() == true) {
-                                        it.add(
-                                            FeedArticleContentBean.Data(
-                                                "image", null, feed.data.messageCover,
-                                                null, null, null, null
-                                            )
-                                        )
-                                    }
-                                    if (feed.data.messageTitle?.isNotEmpty() == true) {
-                                        it.add(
-                                            FeedArticleContentBean.Data(
-                                                "text", feed.data.messageTitle, null,
-                                                null, "true", null, null
-                                            )
-                                        )
-                                    }
-                                    val feedRaw = """{"data":${feed.data.messageRawOutput}}"""
-                                    val feedJson: FeedArticleContentBean = Gson().fromJson(
-                                        feedRaw, FeedArticleContentBean::class.java
-                                    )
-                                    feedJson.data?.forEach { item ->
-                                        if (item.type in listOf("text", "image", "shareUrl"))
-                                            it.add(item)
-                                    }
-                                    itemCount = it.size + 1
-                                }
-                            } else {
-                                feedDataList = ArrayList<HomeFeedResponse.Data>().also {
-                                    it.add(feed.data)
-                                }
-                            }
-                            if (!feed.data.topReplyRows.isNullOrEmpty()) {
-                                isTop = true
-                                topReplyId = feed.data.topReplyRows[0].id
-                                feedTopReplyList.clear()
-                                feedTopReplyList.addAll(feed.data.topReplyRows)
-                            } else if (!feed.data.replyMeRows.isNullOrEmpty()) {
-                                isTop = false
-                                topReplyId = feed.data.replyMeRows[0].id
-                                feedTopReplyList.clear()
-                                feedTopReplyList.addAll(feed.data.replyMeRows)
-                            }
+                            applyFeedData(feed.data)
                             activityState.postValue(LoadingState.LoadingDone)
                         }
                     } else {
@@ -267,6 +227,54 @@ class FeedViewModel @AssistedInject constructor(
                     isRefreshing = false
                     isLoadMore = false
                 }
+        }
+    }
+
+
+    private fun applyFeedData(data: HomeFeedResponse.Data) {
+        uid = data.uid
+        funame = data.userInfo?.username
+        avatar = data.userAvatar
+        device = data.deviceTitle
+        replyCount = data.replynum
+        dateLine = data.dateline
+        feedTypeName = data.feedTypeName
+        feedType = data.feedType
+
+        if (feedType in listOf("feedArticle", "trade") && data.messageRawOutput != "null") {
+            articleMsg = if ((data.message?.length ?: 0) > 150) data.message?.substring(0, 150)
+            else data.message
+            articleDateLine = data.dateline
+            articleList = ArrayList<FeedArticleContentBean.Data>().also {
+                if (data.messageCover?.isNotEmpty() == true) {
+                    it.add(FeedArticleContentBean.Data("image", null, data.messageCover, null, null, null, null))
+                }
+                if (data.messageTitle?.isNotEmpty() == true) {
+                    it.add(FeedArticleContentBean.Data("text", data.messageTitle, null, null, "true", null, null))
+                }
+                val feedRaw = """{"data":${data.messageRawOutput}}"""
+                val feedJson: FeedArticleContentBean = Gson().fromJson(feedRaw, FeedArticleContentBean::class.java)
+                feedJson.data?.forEach { item ->
+                    if (item.type in listOf("text", "image", "shareUrl")) it.add(item)
+                }
+                itemCount = it.size + 1
+            }
+        } else {
+            feedDataList = ArrayList<HomeFeedResponse.Data>().also {
+                it.add(data)
+            }
+        }
+
+        if (!data.topReplyRows.isNullOrEmpty()) {
+            isTop = true
+            topReplyId = data.topReplyRows[0].id
+            feedTopReplyList.clear()
+            feedTopReplyList.addAll(data.topReplyRows)
+        } else if (!data.replyMeRows.isNullOrEmpty()) {
+            isTop = false
+            topReplyId = data.replyMeRows[0].id
+            feedTopReplyList.clear()
+            feedTopReplyList.addAll(data.replyMeRows)
         }
     }
 
