@@ -9,6 +9,7 @@ import com.example.c001apk.constant.Constants
 import com.example.c001apk.logic.model.FeedContentResponse
 import com.example.c001apk.logic.model.FeedEntity
 import com.example.c001apk.logic.model.HomeFeedResponse
+import com.example.c001apk.logic.model.TotalReplyResponse
 import com.example.c001apk.logic.repository.BlackListRepo
 import com.example.c001apk.logic.repository.HistoryFavoriteRepo
 import com.example.c001apk.logic.repository.NetworkRepo
@@ -166,33 +167,38 @@ abstract class BaseAppViewModel(
 
 
     suspend fun fetchReplyImageUrls(fid: String): List<String> = withContext(Dispatchers.IO) {
-        val firstTry = networkRepo.getFeedContentReply(
-            fid,
-            "lastupdate_desc",
-            1,
-            null,
-            null,
-            1,
-            "feed",
-            0,
-            0
-        ).first().getOrNull()
+        FeedBackupUtil.collectReplyImageUrls(fetchBackupReplies(fid))
+    }
 
-        val firstList = FeedBackupUtil.collectReplyImageUrls(firstTry?.data)
-        if (firstList.isNotEmpty()) return@withContext firstList
+    suspend fun fetchBackupReplies(fid: String): List<TotalReplyResponse.Data> = withContext(Dispatchers.IO) {
+        fetchRepliesByFeedType(fid, "feed").ifEmpty {
+            fetchRepliesByFeedType(fid, "")
+        }
+    }
 
-        val secondTry = networkRepo.getFeedContentReply(
-            fid,
-            "lastupdate_desc",
-            1,
-            null,
-            null,
-            1,
-            "",
-            0,
-            0
-        ).first().getOrNull()
-        FeedBackupUtil.collectReplyImageUrls(secondTry?.data)
+    private suspend fun fetchRepliesByFeedType(fid: String, feedType: String): List<TotalReplyResponse.Data> {
+        var page = 1
+        var lastItem: String? = null
+        val all = ArrayList<TotalReplyResponse.Data>()
+        while (page <= 20) {
+            val response = networkRepo.getFeedContentReply(
+                fid,
+                "lastupdate_desc",
+                page,
+                null,
+                lastItem,
+                1,
+                feedType,
+                0,
+                0
+            ).first().getOrNull() ?: break
+            val list = response.data.orEmpty().filter { it.entityType == "feed_reply" }
+            if (list.isEmpty()) break
+            all.addAll(list)
+            lastItem = list.lastOrNull()?.id
+            page++
+        }
+        return all
     }
 
     private fun BackupPayload.toFeedEntity(): FeedEntity {

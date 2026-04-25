@@ -27,6 +27,7 @@ import com.example.c001apk.ui.base.BaseActivity
 import com.example.c001apk.util.NetWorkUtil
 import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.ui.feed.FeedActivity
+import com.example.c001apk.util.BackupFeedPayload
 import com.example.c001apk.util.FeedBackupUtil
 import com.example.c001apk.util.PrefManager
 import com.example.c001apk.util.ToastUtil
@@ -207,12 +208,13 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
                     ?: throw IllegalStateException("获取动态详情失败")
                 val data = detail.data ?: throw IllegalStateException("动态详情为空")
                 val treeUri = Uri.parse(PrefManager.backupTreeUri)
-                val imageUrls = FeedBackupUtil.collectImageUrls(data)
-                val replyImageUrls = runCatching { viewModel.fetchReplyImageUrls(entity.fid) }
+                val backupReplies = runCatching { viewModel.fetchBackupReplies(entity.fid) }
                     .getOrDefault(emptyList())
+                val imageUrls = FeedBackupUtil.collectImageUrls(data)
+                val replyImageUrls = FeedBackupUtil.collectReplyImageUrls(backupReplies)
                 val allImageUrls = (imageUrls + replyImageUrls).distinct()
                 val baseName = FeedBackupUtil.buildBaseName(entity.fid, keepBoth)
-                FeedBackupUtil.backupToSaf(this@HistoryActivity, treeUri, baseName, detail, allImageUrls, replace)
+                FeedBackupUtil.backupToSaf(this@HistoryActivity, treeUri, baseName, detail, backupReplies, allImageUrls, replace)
                 if (replace) viewModel.replaceBackup(entity)
                 else viewModel.addBackup(entity)
             }.onSuccess {
@@ -247,8 +249,11 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
                 jsonFiles.forEach { file ->
                     val text = contentResolver.openInputStream(file.uri)?.bufferedReader()?.use { it.readText() }
                         ?: return@forEach
-                    val response = Gson().fromJson(text, FeedContentResponse::class.java)
-                    val data = response.data ?: return@forEach
+                    val data = runCatching {
+                        Gson().fromJson(text, BackupFeedPayload::class.java).feed.data
+                    }.getOrElse {
+                        Gson().fromJson(text, FeedContentResponse::class.java).data
+                    } ?: return@forEach
                     val fid = data.id ?: data.fid ?: return@forEach
                     if (!viewModel.hasBackup(fid)) {
                         val message = data.message.orEmpty().let {

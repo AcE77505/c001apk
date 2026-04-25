@@ -565,12 +565,13 @@ class FeedFragment : BaseFragment<FragmentFeedBinding>(), IOnPublishClickListene
                     ?: throw IllegalStateException("获取动态详情失败")
                 val data = detail.data ?: throw IllegalStateException("动态详情为空")
                 val treeUri = Uri.parse(PrefManager.backupTreeUri)
-                val imageUrls = FeedBackupUtil.collectImageUrls(data)
-                val replyImageUrls = runCatching { viewModel.fetchReplyImageUrls(fav.fid) }
+                val backupReplies = runCatching { viewModel.fetchBackupReplies(fav.fid) }
                     .getOrDefault(emptyList())
+                val imageUrls = FeedBackupUtil.collectImageUrls(data)
+                val replyImageUrls = FeedBackupUtil.collectReplyImageUrls(backupReplies)
                 val allImageUrls = (imageUrls + replyImageUrls).distinct()
                 val baseName = FeedBackupUtil.buildBaseName(fav.fid, keepBoth)
-                FeedBackupUtil.backupToSaf(requireContext(), treeUri, baseName, detail, allImageUrls, replace)
+                FeedBackupUtil.backupToSaf(requireContext(), treeUri, baseName, detail, backupReplies, allImageUrls, replace)
                 if (replace) viewModel.replaceBackup(fav)
                 else viewModel.insert(fav)
             }.onSuccess {

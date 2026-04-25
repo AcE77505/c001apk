@@ -111,9 +111,10 @@ abstract class BaseAppFragment<VM : BaseAppViewModel> : BaseViewFragment<VM>(),
                 val detail = viewModel.fetchFeedDetail(payload.fid)
                     ?: throw IllegalStateException("获取动态详情失败")
                 val data = detail.data ?: throw IllegalStateException("动态详情为空")
-                val imageUrls = FeedBackupUtil.collectImageUrls(data)
-                val replyImageUrls = runCatching { viewModel.fetchReplyImageUrls(payload.fid) }
+                val backupReplies = runCatching { viewModel.fetchBackupReplies(payload.fid) }
                     .getOrDefault(emptyList())
+                val imageUrls = FeedBackupUtil.collectImageUrls(data)
+                val replyImageUrls = FeedBackupUtil.collectReplyImageUrls(backupReplies)
                 val allImageUrls = (imageUrls + replyImageUrls).distinct()
                 val baseName = FeedBackupUtil.buildBaseName(payload.fid, keepBoth)
                 FeedBackupUtil.backupToSaf(
@@ -121,6 +122,7 @@ abstract class BaseAppFragment<VM : BaseAppViewModel> : BaseViewFragment<VM>(),
                     treeUri,
                     baseName,
                     detail,
+                    backupReplies,
                     allImageUrls,
                     replace
                 )

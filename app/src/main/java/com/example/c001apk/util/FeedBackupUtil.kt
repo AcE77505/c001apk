@@ -16,6 +16,13 @@ import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
+
+
+data class BackupFeedPayload(
+    val feed: FeedContentResponse,
+    val replies: List<TotalReplyResponse.Data> = emptyList(),
+)
+
 object FeedBackupUtil {
 
     private const val JSON_MIME = "application/json"
@@ -64,6 +71,7 @@ object FeedBackupUtil {
         treeUri: Uri,
         baseName: String,
         feedContent: FeedContentResponse,
+        replies: List<TotalReplyResponse.Data>,
         imageUrls: List<String>,
         replace: Boolean
     ) = withContext(Dispatchers.IO) {
@@ -83,7 +91,7 @@ object FeedBackupUtil {
 
         context.contentResolver.openOutputStream(jsonFile.uri)?.use { output ->
             output.writer().use { writer ->
-                writer.write(Gson().toJson(feedContent))
+                writer.write(Gson().toJson(BackupFeedPayload(feedContent, replies)))
             }
         } ?: throw IllegalStateException("写入 JSON 备份失败")
 

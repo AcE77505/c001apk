@@ -17,6 +17,7 @@ import com.example.c001apk.logic.repository.BlackListRepo
 import com.example.c001apk.logic.repository.HistoryFavoriteRepo
 import com.example.c001apk.logic.repository.NetworkRepo
 import com.example.c001apk.ui.base.BaseAppViewModel
+import com.example.c001apk.util.BackupFeedPayload
 import com.example.c001apk.util.Event
 import com.google.gson.Gson
 import dagger.assisted.Assisted
@@ -135,7 +136,7 @@ class FeedViewModel @AssistedInject constructor(
 
     fun fetchFeedReply() {
         if (isOfflineBackup) {
-            if (isRefreshing) {
+            if (isRefreshing && feedReplyData.value == null) {
                 feedReplyData.postValue(emptyList())
             }
             isEnd = true
@@ -203,19 +204,34 @@ class FeedViewModel @AssistedInject constructor(
 
     fun loadBackupData(json: String) {
         runCatching {
-            Gson().fromJson(json, FeedContentResponse::class.java)
-        }.onSuccess { response ->
-            val data = response.data
+            Gson().fromJson(json, BackupFeedPayload::class.java)
+        }.onSuccess { backup ->
+            val data = backup.feed.data
             if (data != null) {
                 isOfflineBackup = true
                 applyFeedData(data)
+                feedReplyData.postValue(backup.replies)
                 activityState.postValue(LoadingState.LoadingDone)
             } else {
                 activityState.postValue(LoadingState.LoadingFailed(LOADING_FAILED))
             }
         }.onFailure {
-            it.printStackTrace()
-            activityState.postValue(LoadingState.LoadingFailed(LOADING_FAILED))
+            runCatching {
+                Gson().fromJson(json, FeedContentResponse::class.java)
+            }.onSuccess { response ->
+                val data = response.data
+                if (data != null) {
+                    isOfflineBackup = true
+                    applyFeedData(data)
+                    feedReplyData.postValue(emptyList())
+                    activityState.postValue(LoadingState.LoadingDone)
+                } else {
+                    activityState.postValue(LoadingState.LoadingFailed(LOADING_FAILED))
+                }
+            }.onFailure {
+                it.printStackTrace()
+                activityState.postValue(LoadingState.LoadingFailed(LOADING_FAILED))
+            }
         }
     }
 
