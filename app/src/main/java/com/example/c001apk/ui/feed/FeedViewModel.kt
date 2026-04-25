@@ -72,6 +72,7 @@ class FeedViewModel @AssistedInject constructor(
 
     var rid: String? = null
     var feedTypeName: String? = null
+    var isOfflineBackup = false
 
     var feedDataList: MutableList<HomeFeedResponse.Data>? = null
     var articleList: MutableList<FeedArticleContentBean.Data>? = null
@@ -133,6 +134,16 @@ class FeedViewModel @AssistedInject constructor(
     }
 
     fun fetchFeedReply() {
+        if (isOfflineBackup) {
+            if (isRefreshing) {
+                feedReplyData.postValue(emptyList())
+            }
+            isEnd = true
+            isRefreshing = false
+            isLoadMore = false
+            footerState.postValue(FooterState.LoadingEnd("离线备份不加载回复"))
+            return
+        }
         viewModelScope.launch(Dispatchers.IO) {
             networkRepo.getFeedContentReply(
                 id, listType, page, firstItem, lastItem, discussMode,
@@ -196,6 +207,7 @@ class FeedViewModel @AssistedInject constructor(
         }.onSuccess { response ->
             val data = response.data
             if (data != null) {
+                isOfflineBackup = true
                 applyFeedData(data)
                 activityState.postValue(LoadingState.LoadingDone)
             } else {
@@ -208,6 +220,7 @@ class FeedViewModel @AssistedInject constructor(
     }
 
     fun fetchFeedData() {
+        isOfflineBackup = false
         viewModelScope.launch(Dispatchers.IO) {
             networkRepo.getFeedContent(id, frid)
                 .collect { result ->
