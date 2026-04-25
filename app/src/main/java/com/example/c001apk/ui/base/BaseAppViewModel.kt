@@ -13,6 +13,7 @@ import com.example.c001apk.logic.repository.BlackListRepo
 import com.example.c001apk.logic.repository.HistoryFavoriteRepo
 import com.example.c001apk.logic.repository.NetworkRepo
 import com.example.c001apk.util.Event
+import com.example.c001apk.util.FeedBackupUtil
 import com.example.c001apk.util.PrefManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -161,6 +162,37 @@ abstract class BaseAppViewModel(
     suspend fun fetchFeedDetail(fid: String): FeedContentResponse? = withContext(Dispatchers.IO) {
         val result = networkRepo.getFeedContent(fid, null).first()
         result.getOrNull()
+    }
+
+
+    suspend fun fetchReplyImageUrls(fid: String): List<String> = withContext(Dispatchers.IO) {
+        val firstTry = networkRepo.getFeedContentReply(
+            fid,
+            "lastupdate_desc",
+            1,
+            null,
+            null,
+            1,
+            "feed",
+            0,
+            0
+        ).first().getOrNull()
+
+        val firstList = FeedBackupUtil.collectReplyImageUrls(firstTry?.data)
+        if (firstList.isNotEmpty()) return@withContext firstList
+
+        val secondTry = networkRepo.getFeedContentReply(
+            fid,
+            "lastupdate_desc",
+            1,
+            null,
+            null,
+            1,
+            "",
+            0,
+            0
+        ).first().getOrNull()
+        FeedBackupUtil.collectReplyImageUrls(secondTry?.data)
     }
 
     private fun BackupPayload.toFeedEntity(): FeedEntity {

@@ -8,6 +8,7 @@ import com.example.c001apk.logic.repository.BlackListRepo
 import com.example.c001apk.logic.model.FeedContentResponse
 import com.example.c001apk.logic.repository.HistoryFavoriteRepo
 import com.example.c001apk.logic.repository.NetworkRepo
+import com.example.c001apk.util.FeedBackupUtil
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -53,6 +54,37 @@ class HistoryViewModel @AssistedInject constructor(
 
     suspend fun fetchFeedDetail(fid: String): FeedContentResponse? {
         return networkRepo.getFeedContent(fid, null).first().getOrNull()
+    }
+
+
+    suspend fun fetchReplyImageUrls(fid: String): List<String> {
+        val firstTry = networkRepo.getFeedContentReply(
+            fid,
+            "lastupdate_desc",
+            1,
+            null,
+            null,
+            1,
+            "feed",
+            0,
+            0
+        ).first().getOrNull()
+
+        val firstList = FeedBackupUtil.collectReplyImageUrls(firstTry?.data)
+        if (firstList.isNotEmpty()) return firstList
+
+        val secondTry = networkRepo.getFeedContentReply(
+            fid,
+            "lastupdate_desc",
+            1,
+            null,
+            null,
+            1,
+            "",
+            0,
+            0
+        ).first().getOrNull()
+        return FeedBackupUtil.collectReplyImageUrls(secondTry?.data)
     }
 
     fun saveUid(uid: String) {

@@ -195,8 +195,11 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
                 val data = detail.data ?: throw IllegalStateException("动态详情为空")
                 val treeUri = Uri.parse(PrefManager.backupTreeUri)
                 val imageUrls = FeedBackupUtil.collectImageUrls(data)
+                val replyImageUrls = runCatching { viewModel.fetchReplyImageUrls(entity.fid) }
+                    .getOrDefault(emptyList())
+                val allImageUrls = (imageUrls + replyImageUrls).distinct()
                 val baseName = FeedBackupUtil.buildBaseName(entity.fid, keepBoth)
-                FeedBackupUtil.backupToSaf(this@HistoryActivity, treeUri, baseName, detail, imageUrls, replace)
+                FeedBackupUtil.backupToSaf(this@HistoryActivity, treeUri, baseName, detail, allImageUrls, replace)
                 if (replace) viewModel.replaceBackup(entity)
                 else viewModel.addBackup(entity)
             }.onSuccess {

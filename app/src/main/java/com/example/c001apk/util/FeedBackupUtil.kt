@@ -52,6 +52,13 @@ object FeedBackupUtil {
         return if (keepBoth) "${prefix}_${System.currentTimeMillis()}" else prefix
     }
 
+
+    fun collectReplyImageUrls(replies: List<TotalReplyResponse.Data>?): List<String> {
+        val list = linkedSetOf<String>()
+        replies.orEmpty().forEach { collectTotalReplyUrls(list, it) }
+        return list.toList()
+    }
+
     suspend fun backupToSaf(
         context: Context,
         treeUri: Uri,
