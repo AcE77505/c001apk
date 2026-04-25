@@ -13,7 +13,12 @@ class PopClickListener(
     val entityType: String,
     val id: String,
     val uid: String,
-    val position: Int
+    val position: Int,
+    val username: String? = null,
+    val userAvatar: String? = null,
+    val deviceTitle: String? = null,
+    val message: String? = null,
+    val dateline: String? = null,
 ) :
     PopupMenu.OnMenuItemClickListener {
     override fun onMenuItemClick(item: MenuItem?): Boolean {
@@ -36,6 +41,10 @@ class PopClickListener(
 
             R.id.delete -> {
                 listener.onDeleteClicked(entityType, id, position)
+            }
+
+            R.id.backup -> {
+                listener.onBackupClicked(id, uid, username, userAvatar, deviceTitle, message, dateline)
             }
 
             R.id.show -> {

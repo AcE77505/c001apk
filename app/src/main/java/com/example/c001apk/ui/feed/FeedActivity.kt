@@ -33,7 +33,12 @@ class FeedActivity : BaseViewActivity<FeedViewModel>() {
     }
 
     override fun fetchData() {
-        viewModel.fetchFeedData()
+        val backupJson = intent.getStringExtra("backupJson")
+        if (!backupJson.isNullOrEmpty()) {
+            viewModel.loadBackupData(backupJson)
+        } else {
+            viewModel.fetchFeedData()
+        }
     }
 
     @SuppressLint("CommitTransaction")

@@ -6,14 +6,20 @@ import androidx.lifecycle.viewModelScope
 import com.example.c001apk.adapter.FooterState
 import com.example.c001apk.adapter.ItemListener
 import com.example.c001apk.constant.Constants
+import com.example.c001apk.logic.model.FeedContentResponse
+import com.example.c001apk.logic.model.FeedEntity
 import com.example.c001apk.logic.model.HomeFeedResponse
+import com.example.c001apk.logic.model.TotalReplyResponse
 import com.example.c001apk.logic.repository.BlackListRepo
 import com.example.c001apk.logic.repository.HistoryFavoriteRepo
 import com.example.c001apk.logic.repository.NetworkRepo
 import com.example.c001apk.util.Event
+import com.example.c001apk.util.FeedBackupUtil
 import com.example.c001apk.util.PrefManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 abstract class BaseAppViewModel(
     val blackListRepo: BlackListRepo,
@@ -25,6 +31,18 @@ abstract class BaseAppViewModel(
 
     val footerState = MutableLiveData<FooterState>()
     val toastText = MutableLiveData<Event<String?>>()
+
+    data class BackupPayload(
+        val fid: String,
+        val uid: String,
+        val uname: String,
+        val avatar: String,
+        val device: String,
+        val message: String,
+        val pubDate: String,
+    )
+
+    val backupRequest = MutableLiveData<Event<BackupPayload>>()
 
     open fun showCollection(id: String, title: String) {}
 
@@ -98,6 +116,93 @@ abstract class BaseAppViewModel(
             else "/v6/feed/deleteReply"
             onDeleteFeed(url, id, position)
         }
+
+        override fun onBackupClicked(
+            id: String,
+            uid: String,
+            username: String?,
+            userAvatar: String?,
+            deviceTitle: String?,
+            message: String?,
+            dateline: String?
+        ) {
+            backupRequest.postValue(
+                Event(
+                    BackupPayload(
+                        id,
+                        uid,
+                        username.orEmpty(),
+                        userAvatar.orEmpty(),
+                        deviceTitle.orEmpty(),
+                        message.orEmpty(),
+                        dateline.orEmpty()
+                    )
+                )
+            )
+        }
+    }
+
+
+    suspend fun hasBackup(fid: String): Boolean = withContext(Dispatchers.IO) {
+        historyRepo.checkFavorite(fid)
+    }
+
+    suspend fun replaceBackup(payload: BackupPayload) {
+        withContext(Dispatchers.IO) {
+            historyRepo.deleteFavorite(payload.fid)
+            historyRepo.insertFavorite(payload.toFeedEntity())
+        }
+    }
+
+    suspend fun addBackup(payload: BackupPayload) {
+        withContext(Dispatchers.IO) {
+            historyRepo.insertFavorite(payload.toFeedEntity())
+        }
+    }
+
+    suspend fun fetchFeedDetail(fid: String): FeedContentResponse? = withContext(Dispatchers.IO) {
+        val result = networkRepo.getFeedContent(fid, null).first()
+        result.getOrNull()
+    }
+
+
+    suspend fun fetchReplyImageUrls(fid: String): List<String> = withContext(Dispatchers.IO) {
+        FeedBackupUtil.collectReplyImageUrls(fetchBackupReplies(fid))
+    }
+
+    suspend fun fetchBackupReplies(fid: String): List<TotalReplyResponse.Data> = withContext(Dispatchers.IO) {
+        fetchRepliesByFeedType(fid, "feed").ifEmpty {
+            fetchRepliesByFeedType(fid, "")
+        }
+    }
+
+    private suspend fun fetchRepliesByFeedType(fid: String, feedType: String): List<TotalReplyResponse.Data> {
+        var page = 1
+        var lastItem: String? = null
+        val all = ArrayList<TotalReplyResponse.Data>()
+        while (page <= 20) {
+            val response = networkRepo.getFeedContentReply(
+                fid,
+                "lastupdate_desc",
+                page,
+                null,
+                lastItem,
+                1,
+                feedType,
+                0,
+                0
+            ).first().getOrNull() ?: break
+            val list = response.data.orEmpty().filter { it.entityType == "feed_reply" }
+            if (list.isEmpty()) break
+            all.addAll(list)
+            lastItem = list.lastOrNull()?.id
+            page++
+        }
+        return all
+    }
+
+    private fun BackupPayload.toFeedEntity(): FeedEntity {
+        return FeedEntity(fid, uid, uname, avatar, device, message, pubDate)
     }
 
     fun onDeleteFeed(url: String, id: String, position: Int) {

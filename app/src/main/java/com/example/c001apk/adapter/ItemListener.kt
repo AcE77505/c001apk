@@ -160,4 +160,14 @@ interface ItemListener {
     fun onBlockUser(id: String, uid: String, position: Int) {}
 
     fun onDeleteClicked(entityType: String, id: String, position: Int) {}
+
+    fun onBackupClicked(
+        id: String,
+        uid: String,
+        username: String?,
+        userAvatar: String?,
+        deviceTitle: String?,
+        message: String?,
+        dateline: String?
+    ) {}
 }

@@ -163,6 +163,11 @@ object PrefManager {
         get() = pref.getBoolean("isCheckUpdate", true)
         set(value) = pref.edit().putBoolean("isCheckUpdate", value).apply()
 
+
+    var backupTreeUri: String
+        get() = pref.getString("backupTreeUri", "")!!
+        set(value) = pref.edit().putString("backupTreeUri", value).apply()
+
     fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         pref.registerOnSharedPreferenceChangeListener(listener)
     }

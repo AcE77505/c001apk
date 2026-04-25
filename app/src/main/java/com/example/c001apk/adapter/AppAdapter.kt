@@ -34,6 +34,19 @@ import com.example.c001apk.util.PrefManager
 import com.example.c001apk.view.LinearItemDecoration1
 import com.google.android.material.color.MaterialColors
 
+
+private fun resolveFeedId(data: HomeFeedResponse.Data): String {
+    return data.id
+        ?: data.fid
+        ?: data.feed?.id
+        ?: run {
+            val url = data.url.orEmpty()
+            if (url.contains("/feed/")) {
+                url.substringAfter("/feed/").substringBefore('?').substringBefore('/')
+            } else ""
+        }
+}
+
 class AppAdapter(
     private val listener: ItemListener
 ) : BaseAdapter<ViewDataBinding>() {
@@ -43,6 +56,11 @@ class AppAdapter(
         var entityType: String = ""
         var id: String = ""
         var uid: String = ""
+        var username: String? = null
+        var userAvatar: String? = null
+        var deviceTitle: String? = null
+        var message: String? = null
+        var dateline: String? = null
 
         init {
             binding.expand.setOnClickListener {
@@ -60,7 +78,12 @@ class AppAdapter(
                             entityType,
                             id,
                             uid,
-                            bindingAdapterPosition
+                            bindingAdapterPosition,
+                            username,
+                            userAvatar,
+                            deviceTitle,
+                            message,
+                            dateline
                         )
                     )
                     show()
@@ -70,8 +93,13 @@ class AppAdapter(
 
         override fun bind(data: HomeFeedResponse.Data) {
             entityType = data.entityType
-            id = data.id ?: ""
+            id = resolveFeedId(data)
             uid = data.uid ?: ""
+            username = data.username
+            userAvatar = data.userAvatar
+            deviceTitle = data.deviceTitle
+            message = data.message
+            dateline = data.dateline?.toString()
 
             binding.setVariable(BR.data, data)
             binding.setVariable(BR.listener, listener)
@@ -365,6 +393,11 @@ class AppAdapter(
         var entityType: String = ""
         var id: String = ""
         var uid: String = ""
+        var username: String? = null
+        var userAvatar: String? = null
+        var deviceTitle: String? = null
+        var message: String? = null
+        var dateline: String? = null
 
         init {
             binding.expand.setOnClickListener {
@@ -382,7 +415,12 @@ class AppAdapter(
                             entityType,
                             id,
                             uid,
-                            bindingAdapterPosition
+                            bindingAdapterPosition,
+                            username,
+                            userAvatar,
+                            deviceTitle,
+                            message,
+                            dateline
                         )
                     )
                     show()
@@ -392,8 +430,13 @@ class AppAdapter(
 
         override fun bind(data: HomeFeedResponse.Data) {
             entityType = data.entityType
-            id = data.id ?: ""
+            id = resolveFeedId(data)
             uid = data.uid ?: ""
+            username = data.username
+            userAvatar = data.userAvatar
+            deviceTitle = data.deviceTitle
+            message = data.message
+            dateline = data.dateline?.toString()
 
             binding.setVariable(BR.data, data)
             binding.setVariable(BR.listener, listener)
@@ -406,6 +449,7 @@ class AppAdapter(
             )
         }
     }
+
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
