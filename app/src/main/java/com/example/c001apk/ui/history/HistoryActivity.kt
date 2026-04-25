@@ -11,6 +11,7 @@ import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.view.isVisible
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -20,6 +21,7 @@ import com.example.c001apk.R
 import com.example.c001apk.adapter.HeaderAdapter
 import com.example.c001apk.adapter.ItemListener
 import com.example.c001apk.databinding.ActivityHistoryBinding
+import com.example.c001apk.logic.model.FeedContentResponse
 import com.example.c001apk.logic.model.FeedEntity
 import com.example.c001apk.ui.base.BaseActivity
 import com.example.c001apk.util.FeedBackupUtil
@@ -28,6 +30,7 @@ import com.example.c001apk.util.ToastUtil
 import com.example.c001apk.view.LinearItemDecoration
 import com.example.c001apk.view.StaggerItemDecoration
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.gson.Gson
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.withCreationCallback
 import kotlinx.coroutines.Dispatchers
@@ -80,6 +83,10 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
             binding.indicator.parent.isVisible = false
         }
 
+        if (viewModel.type == "favorite" && PrefManager.backupTreeUri.isNotEmpty()) {
+            syncBackupRecords(showToast = false)
+        }
+
     }
 
     private fun initBar() {
@@ -118,6 +125,9 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
                         .setTitle("当前备份路径")
                         .setMessage(PrefManager.backupTreeUri)
                         .setNegativeButton(android.R.string.cancel, null)
+                        .setNeutralButton("同步备份列表") { _, _ ->
+                            syncBackupRecords(showToast = true)
+                        }
                         .setPositiveButton("重设备份路径") { _, _ ->
                             backupPathLauncher.launch(null)
                         }
@@ -211,6 +221,56 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
                 withContext(Dispatchers.Main) {
                     loadingDialog.dismiss()
                     ToastUtil.toast(this@HistoryActivity, it.message ?: "备份失败")
+                }
+            }
+        }
+    }
+
+
+    private fun syncBackupRecords(showToast: Boolean) {
+        val uriString = PrefManager.backupTreeUri
+        if (uriString.isEmpty()) {
+            if (showToast) ToastUtil.toast(this, "请选择备份保存路径")
+            return
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            val addCount = runCatching {
+                val root = DocumentFile.fromTreeUri(this@HistoryActivity, Uri.parse(uriString))
+                    ?: return@runCatching 0
+                val jsonFiles = root.listFiles().filter {
+                    it.isFile && it.name?.endsWith(".json", ignoreCase = true) == true
+                }
+                var count = 0
+                jsonFiles.forEach { file ->
+                    val text = contentResolver.openInputStream(file.uri)?.bufferedReader()?.use { it.readText() }
+                        ?: return@forEach
+                    val response = Gson().fromJson(text, FeedContentResponse::class.java)
+                    val data = response.data ?: return@forEach
+                    val fid = data.id ?: data.fid ?: return@forEach
+                    if (!viewModel.hasBackup(fid)) {
+                        val message = data.message.orEmpty().let {
+                            if (it.length > 150) it.substring(0, 150) else it
+                        }
+                        viewModel.addBackup(
+                            FeedEntity(
+                                fid,
+                                data.uid.orEmpty(),
+                                data.username ?: data.userInfo?.username.orEmpty(),
+                                data.userAvatar.orEmpty(),
+                                data.deviceTitle.orEmpty(),
+                                message,
+                                data.dateline?.toString().orEmpty()
+                            )
+                        )
+                        count++
+                    }
+                }
+                count
+            }.getOrDefault(0)
+
+            if (showToast) {
+                launch(Dispatchers.Main) {
+                    ToastUtil.toast(this@HistoryActivity, if (addCount > 0) "已同步 $addCount 条备份" else "没有可同步的新备份")
                 }
             }
         }
