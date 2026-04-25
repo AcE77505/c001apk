@@ -9,6 +9,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.net.HttpURLConnection
 import java.net.URL
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
@@ -24,13 +25,17 @@ object FeedBackupUtil {
     fun collectImageUrls(data: HomeFeedResponse.Data?): List<String> {
         if (data == null) return emptyList()
         val list = linkedSetOf<String>()
-        data.picArr?.filter { it.isNotBlank() }?.forEach { list.add(it) }
-        data.replyRows?.forEach { reply ->
-            reply.picArr?.filter { it.isNotBlank() }?.forEach { list.add(it) }
-            reply.pic?.takeIf { it.isNotBlank() }?.let { list.add(it) }
+
+        data.picArr.orEmpty().forEach { addUrl(list, it) }
+        addUrl(list, data.pic)
+        addUrl(list, data.messageCover)
+        addUrl(list, data.coverPic)
+
+        data.replyRows.orEmpty().forEach { reply ->
+            reply.picArr.orEmpty().forEach { addUrl(list, it) }
+            addUrl(list, reply.pic)
         }
-        data.messageCover?.takeIf { it.isNotBlank() }?.let { list.add(it) }
-        data.coverPic?.takeIf { it.isNotBlank() }?.let { list.add(it) }
+
         return list.toList()
     }
 
@@ -68,21 +73,28 @@ object FeedBackupUtil {
         } ?: throw IllegalStateException("写入 JSON 备份失败")
 
         if (imageUrls.isNotEmpty()) {
+            val downloaded = imageUrls.mapIndexed { index, url ->
+                val bytes = try {
+                    downloadBytes(url)
+                } catch (e: Exception) {
+                    throw IllegalStateException("下载图片失败，请检查网络或图片链接", e)
+                }
+                DownloadedImage("image_${index + 1}.${guessExt(url)}", bytes)
+            }
+
             val zipFile = root.createFile(ZIP_MIME, zipName)
                 ?: throw IllegalStateException("创建图片备份压缩包失败")
             context.contentResolver.openOutputStream(zipFile.uri)?.use { output ->
                 ZipOutputStream(output).use { zos ->
-                    imageUrls.forEachIndexed { index, url ->
-                        val bytes = downloadBytes(url)
-                        val ext = guessExt(url)
-                        val entry = ZipEntry("image_${index + 1}.$ext")
+                    downloaded.forEach { image ->
+                        val entry = ZipEntry(image.fileName)
                         entry.method = ZipEntry.STORED
-                        entry.size = bytes.size.toLong()
-                        entry.compressedSize = bytes.size.toLong()
-                        val crc32 = CRC32().apply { update(bytes) }
+                        entry.size = image.bytes.size.toLong()
+                        entry.compressedSize = image.bytes.size.toLong()
+                        val crc32 = CRC32().apply { update(image.bytes) }
                         entry.crc = crc32.value
                         zos.putNextEntry(entry)
-                        zos.write(bytes)
+                        zos.write(image.bytes)
                         zos.closeEntry()
                     }
                 }
@@ -90,11 +102,44 @@ object FeedBackupUtil {
         }
     }
 
+    private fun addUrl(set: MutableSet<String>, raw: String?) {
+        if (raw.isNullOrBlank()) return
+        raw.split(',')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .forEach { part ->
+                normalizeUrl(part)?.let { set.add(it) }
+            }
+    }
+
+    private fun normalizeUrl(raw: String): String? {
+        val value = raw.removeSurrounding("\"").trim()
+        if (value.isBlank()) return null
+        return when {
+            value.startsWith("https://") -> value
+            value.startsWith("http://") -> value.http2https
+            value.startsWith("//") -> "https:$value"
+            value.startsWith("image.coolapk.com") -> "https://$value"
+            value.startsWith("/") -> "https://image.coolapk.com$value"
+            else -> "https://$value"
+        }
+    }
+
     private fun downloadBytes(url: String): ByteArray {
-        return URL(url).openStream().use { input ->
-            val baos = ByteArrayOutputStream()
-            input.copyTo(baos)
-            baos.toByteArray()
+        val connection = URL(url).openConnection() as HttpURLConnection
+        connection.connectTimeout = 20_000
+        connection.readTimeout = 20_000
+        connection.instanceFollowRedirects = true
+        connection.setRequestProperty("User-Agent", PrefManager.USER_AGENT)
+        connection.setRequestProperty("Accept", "image/*,*/*;q=0.8")
+        return try {
+            connection.inputStream.use { input ->
+                val baos = ByteArrayOutputStream()
+                input.copyTo(baos)
+                baos.toByteArray()
+            }
+        } finally {
+            connection.disconnect()
         }
     }
 
@@ -108,4 +153,9 @@ object FeedBackupUtil {
             else -> "jpg"
         }
     }
+
+    private data class DownloadedImage(
+        val fileName: String,
+        val bytes: ByteArray,
+    )
 }
