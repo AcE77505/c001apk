@@ -34,6 +34,19 @@ import com.example.c001apk.util.PrefManager
 import com.example.c001apk.view.LinearItemDecoration1
 import com.google.android.material.color.MaterialColors
 
+
+private fun resolveFeedId(data: HomeFeedResponse.Data): String {
+    return data.id
+        ?: data.fid
+        ?: data.feed?.id
+        ?: run {
+            val url = data.url.orEmpty()
+            if (url.contains("/feed/")) {
+                url.substringAfter("/feed/").substringBefore('?').substringBefore('/')
+            } else ""
+        }
+}
+
 class AppAdapter(
     private val listener: ItemListener
 ) : BaseAdapter<ViewDataBinding>() {
@@ -80,7 +93,7 @@ class AppAdapter(
 
         override fun bind(data: HomeFeedResponse.Data) {
             entityType = data.entityType
-            id = data.id ?: ""
+            id = resolveFeedId(data)
             uid = data.uid ?: ""
             username = data.username
             userAvatar = data.userAvatar
@@ -417,7 +430,7 @@ class AppAdapter(
 
         override fun bind(data: HomeFeedResponse.Data) {
             entityType = data.entityType
-            id = data.id ?: ""
+            id = resolveFeedId(data)
             uid = data.uid ?: ""
             username = data.username
             userAvatar = data.userAvatar
@@ -436,6 +449,7 @@ class AppAdapter(
             )
         }
     }
+
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
