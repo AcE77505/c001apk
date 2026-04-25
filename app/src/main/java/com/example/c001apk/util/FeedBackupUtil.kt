@@ -30,10 +30,14 @@ object FeedBackupUtil {
         addUrl(list, data.pic)
         addUrl(list, data.messageCover)
         addUrl(list, data.coverPic)
+        addUrl(list, data.userAvatar)
+        addUrl(list, data.userInfo?.userAvatar)
+        addUrl(list, data.fUserInfo?.userAvatar)
 
         data.replyRows.orEmpty().forEach { reply ->
             reply.picArr.orEmpty().forEach { addUrl(list, it) }
             addUrl(list, reply.pic)
+            addUrl(list, reply.userInfo?.userAvatar)
         }
 
         return list.toList()
