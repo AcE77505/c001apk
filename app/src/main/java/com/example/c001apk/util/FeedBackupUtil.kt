@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import com.example.c001apk.logic.model.FeedContentResponse
 import com.example.c001apk.logic.model.HomeFeedResponse
+import com.example.c001apk.logic.model.TotalReplyResponse
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -39,6 +40,9 @@ object FeedBackupUtil {
             addUrl(list, reply.pic)
             addUrl(list, reply.userInfo?.userAvatar)
         }
+
+        data.topReplyRows.orEmpty().forEach { collectTotalReplyUrls(list, it) }
+        data.replyMeRows.orEmpty().forEach { collectTotalReplyUrls(list, it) }
 
         return list.toList()
     }
@@ -103,6 +107,17 @@ object FeedBackupUtil {
                     }
                 }
             } ?: throw IllegalStateException("写入图片备份压缩包失败")
+        }
+    }
+
+
+    private fun collectTotalReplyUrls(set: MutableSet<String>, reply: TotalReplyResponse.Data?) {
+        if (reply == null) return
+        reply.picArr.orEmpty().forEach { addUrl(set, it) }
+        addUrl(set, reply.pic)
+        addUrl(set, reply.userAvatar)
+        reply.replyRows.orEmpty().forEach { child ->
+            collectTotalReplyUrls(set, child)
         }
     }
 
