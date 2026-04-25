@@ -126,6 +126,7 @@
     <string name="copyText">复制</string>
     <string name="show_reply_1">查看对话</string>
     <string name="local_favorite">我的备份</string>
+    <string name="my_backup">备份</string>
     <string name="about_developer">开发者</string>
     <string name="backup">导出</string>
     <string name="backup_path">备份路径</string>
