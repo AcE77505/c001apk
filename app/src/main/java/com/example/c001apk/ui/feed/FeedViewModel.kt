@@ -9,7 +9,6 @@ import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants.LOADING_END
 import com.example.c001apk.constant.Constants.LOADING_FAILED
 import com.example.c001apk.logic.model.FeedArticleContentBean
-import com.example.c001apk.logic.model.FeedContentResponse
 import com.example.c001apk.logic.model.FeedEntity
 import com.example.c001apk.logic.model.HomeFeedResponse
 import com.example.c001apk.logic.model.TotalReplyResponse
@@ -24,7 +23,6 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -431,13 +429,6 @@ class FeedViewModel @AssistedInject constructor(
             historyRepo.insertFavorite(fav)
         }
     }
-
-    suspend fun fetchFeedDetail(fid: String): FeedContentResponse? {
-        return withContext(Dispatchers.IO) {
-            networkRepo.getFeedContent(fid, null).first().getOrNull()
-        }
-    }
-
     fun saveHistory(
         id: String,
         uid: String,
